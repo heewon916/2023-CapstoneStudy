@@ -1,0 +1,66 @@
+<!Doctype HTML>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>마이크 녹음</title>
+</head>
+<body>
+<button>시작/종료</button>
+<br><br>
+<audio controls>녹음된 소리를 재생할 audio 엘리먼트</audio>
+</body>
+<script>
+    // audio, button 태그 취득
+    const $audioEI = document.querySelector("audio");
+    const $cameraEI = document.querySelector("")
+    const $btn = document.querySelector("button");
+
+    // 녹음 상태 체크용 변수
+    let isRecording = false;
+
+    // MediaRecorder 변수 생성
+    let mediaRecorder = null;
+
+    // 녹음 데이터(Blob) 조각 저장 배열
+    const audioArray = [];
+
+    // 녹음 시작/종료 버튼 클릭 이벤트 처리
+    $btn.onclick = async (event) => {
+        // 녹음 중이 아닌 경우에만 녹음 시작 처리
+        if(!isRecording){
+            // 1. 마이크 mediaStream 생성; promise 반환 -> async/await 사용
+            const mediaStream = await navigator.mediaDevices.getUserMedia({audio:true});
+            // 2. MediaRecorder 생성; 마이크 MediaStream을 인자로 입력
+            mediaRecorder = new MediaRecorder(mediaStream);
+            // 3. 이벤트 핸들러; 녹음 데이터 취득 처리
+            mediaRecorder.ondataavailable = (event) => {
+                // 오디오 데이터가 취득될 때마다 배열에 담기
+                audioArray.push(event.data);
+            }
+            // 4. 이벤트 핸들러; 녹음 종료 처리
+            mediaRecorder.onstop = (event) => {
+                // 4-1. 녹음이 종료되면, 배열에 담긴 오디오 데이터(Blob) 합침 + 코덱 설정
+                const blob = new Blob(audioArray, {
+                    "type": "audio/ogg codecs=opus"
+                });
+                audioArray.splice(0); // 초기화; 기존 오디오 데이터들은 모두 비움
+
+                // 4-2. Blob 데이터에 접근할 수 있는 객체 URL 생성
+                const blobURL = window.URL.createObjectURL(blob);
+
+                // 4-3. audio 엘리먼트로 재생한다.
+                $audioEI.src = blobURL;
+                $audioEI.play();
+            }
+            // 5. 녹음 시작
+            mediaRecorder.start();
+            isRecording = true;
+        } else {
+            // 6. 녹음 종료
+            mediaRecorder.stop();
+            isRecording = false;
+        }
+    }
+</script>
+</html>
